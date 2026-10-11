@@ -59,8 +59,10 @@ defmodule QuakeServer.Source do
   return value in the return slots, as a builtin does. A name the program lacks is
   passed over.
   """
-  @callback replacements() :: %{String.t() => (QuakeServer.Server.t(), non_neg_integer() ->
-                                                  QuakeServer.Server.t())}
+  @callback replacements() :: %{
+              String.t() => (QuakeServer.Server.t(), non_neg_integer() ->
+                               QuakeServer.Server.t())
+            }
 
   @optional_callbacks read: 1, list: 1, package: 1, depth: 1, replacements: 0
 end

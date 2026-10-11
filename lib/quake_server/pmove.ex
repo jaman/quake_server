@@ -222,7 +222,7 @@ defmodule QuakeServer.Pmove do
   end
 
   defp short_angles({pitch, yaw, roll}),
-    do: {pitch * (360.0 / 65536), yaw * (360.0 / 65536), roll * (360.0 / 65536)}
+    do: {pitch * (360.0 / 65_536), yaw * (360.0 / 65_536), roll * (360.0 / 65_536)}
 
   defp steer(%{pm_type: type} = pm) when type in [:spectator, :old_spectator],
     do: %{spectator_move(pm) | onground: false}
@@ -942,16 +942,20 @@ defmodule QuakeServer.Pmove do
     indexed = Enum.with_index(slide.planes)
 
     Enum.reduce_while(indexed, {:crease, pm}, fn {plane, index}, {_, pm} ->
-      case off_plane(pm, slide, plane) do
-        {:bounced, pm} ->
-          {:halt, {:bounced, pm}}
-
-        {:clipped, pm} ->
-          if clear_of_others?(pm.velocity, indexed, index),
-            do: {:halt, {:along, pm}},
-            else: {:cont, {:crease, pm}}
-      end
+      along_plane(pm, slide, plane, indexed, index)
     end)
+  end
+
+  defp along_plane(pm, slide, plane, indexed, index) do
+    case off_plane(pm, slide, plane) do
+      {:bounced, pm} ->
+        {:halt, {:bounced, pm}}
+
+      {:clipped, pm} ->
+        if clear_of_others?(pm.velocity, indexed, index),
+          do: {:halt, {:along, pm}},
+          else: {:cont, {:crease, pm}}
+    end
   end
 
   defp off_plane(%{movevars: %{walljump: 2}} = pm, slide, plane),

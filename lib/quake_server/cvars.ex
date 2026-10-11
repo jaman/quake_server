@@ -76,6 +76,16 @@ defmodule QuakeServer.Cvars do
           | :warnonchange
           | :rendereroverride
 
+  @latches [
+    {:maplatch, :server,
+     "variable %s is latched and will be applied for the start of the next map\n"},
+    {:videolatch, :renderer, "variable %s will be changed after a vid_restart\n"},
+    {:rendererlatch, :renderer, "variable %s will be changed after a vid_reload\n"},
+    {:rendereroverride, :renderer,
+     "variable %s is not supported by the current renderer/gpu/drivers\n"},
+    {:rulesetlatch, nil, "variable %s is latched due to current ruleset\n"}
+  ]
+
   @flags %{
     archive: 1,
     userinfo: 2,
@@ -116,7 +126,7 @@ defmodule QuakeServer.Cvars do
   @stamp 10
   @group 11
   @alias 12
-  @float32_max 3.4028234663852886e38
+  @float32_max 3.4_028_234_663_852_886e38
 
   @doc "A new, empty table belonging to the calling process."
   @spec new() :: t()
@@ -712,25 +722,10 @@ defmodule QuakeServer.Cvars do
   end
 
   defp latch_message(cvars, bits) do
-    cond do
-      (bits &&& @flags.maplatch) != 0 and running?(cvars, :server) ->
-        "variable %s is latched and will be applied for the start of the next map\n"
-
-      (bits &&& @flags.videolatch) != 0 and running?(cvars, :renderer) ->
-        "variable %s will be changed after a vid_restart\n"
-
-      (bits &&& @flags.rendererlatch) != 0 and running?(cvars, :renderer) ->
-        "variable %s will be changed after a vid_reload\n"
-
-      (bits &&& @flags.rendereroverride) != 0 and running?(cvars, :renderer) ->
-        "variable %s is not supported by the current renderer/gpu/drivers\n"
-
-      (bits &&& @flags.rulesetlatch) != 0 ->
-        "variable %s is latched due to current ruleset\n"
-
-      true ->
-        nil
-    end
+    Enum.find_value(@latches, fn {flag, running, message} ->
+      if (bits &&& Map.fetch!(@flags, flag)) != 0 and (running == nil or running?(cvars, running)),
+        do: message
+    end)
   end
 
   defp latch(cvars, row, value, message) do

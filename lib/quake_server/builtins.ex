@@ -41,8 +41,8 @@ defmodule QuakeServer.Builtins do
   alias Cauldron3D.{Hull, Vec}
   alias QuakeC.Exec
   alias QuakeServer.{Angles, Contents, Edicts, Events, Models, Q, Server, Steps, World}
-  alias QuakeServer.World.Trace
   alias QuakeServer.Builtins.{Aim, Print, Text, Write}
+  alias QuakeServer.World.Trace
 
   @return 1
   @ignore_hull 0x80000000
@@ -51,7 +51,7 @@ defmodule QuakeServer.Builtins do
 
   @doc """
   Run builtin `number`, or the game's own function for a program function its source
-  replaces (`QuakeServer.Source.replacements/0`), called by that function's name.
+  replaces (`c:QuakeServer.Source.replacements/0`), called by that function's name.
   """
   @spec call(Server.t(), non_neg_integer() | String.t(), non_neg_integer()) :: Server.t()
   def call(%Server{replacements: replacements} = server, name, argc)

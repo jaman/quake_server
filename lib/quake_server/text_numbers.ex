@@ -22,8 +22,8 @@ defmodule QuakeServer.TextNumbers do
 
   import Bitwise
 
-  @float32_max 3.4028234663852886e38
-  @double_max 1.7976931348623157e308
+  @float32_max 3.4_028_234_663_852_886e38
+  @double_max 1.7_976_931_348_623_157e308
   @spaces ~c" \t\n\v\f\r"
   @exponent_limit 400
   @power_limit 1100

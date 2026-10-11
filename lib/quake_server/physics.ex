@@ -378,40 +378,37 @@ defmodule QuakeServer.Physics do
   defp bounced(server, _entity, %{hit: nil}), do: server
 
   defp bounced(server, entity, trace) do
-    if Edicts.free?(server, entity) do
-      server
-    else
-      movetype = Edicts.int(server, entity, "movetype")
-      factor = Edicts.float(server, entity, "bouncefactor")
+    if Edicts.free?(server, entity), do: server, else: rebound(server, entity, trace)
+  end
 
-      backoff =
-        cond do
-          movetype == 10 and factor != 0 -> 1 + factor
-          movetype == 10 -> 1.5
-          movetype == 11 and factor != 0 -> 1 + factor
-          movetype == 11 -> 2.0
-          true -> 1.0
-        end
+  defp rebound(server, entity, trace) do
+    movetype = Edicts.int(server, entity, "movetype")
+    backoff = backoff(movetype, Edicts.float(server, entity, "bouncefactor"))
 
-      velocity =
-        Move.clip_velocity(Edicts.vector(server, entity, "velocity"), trace.normal, backoff)
+    velocity =
+      Move.clip_velocity(Edicts.vector(server, entity, "velocity"), trace.normal, backoff)
 
-      server = Edicts.put(server, entity, "velocity", velocity)
-      {_, _, nz} = trace.normal
-      {_, _, vz} = velocity
+    server
+    |> Edicts.put(entity, "velocity", velocity)
+    |> settled(entity, trace, movetype, velocity)
+    |> water_transition(entity)
+  end
 
-      server =
-        if nz > 0.7 and movetype != 11 and (vz < bounce_stop(server, entity) or movetype != 10),
-          do:
-            server
-            |> Edicts.set_flag(entity, :onground)
-            |> Edicts.put(entity, "groundentity", trace.hit || 0)
-            |> Edicts.put(entity, "velocity", {0.0, 0.0, 0.0})
-            |> Edicts.put(entity, "avelocity", {0.0, 0.0, 0.0}),
-          else: server
+  defp backoff(10, factor) when factor != 0, do: 1 + factor
+  defp backoff(10, _factor), do: 1.5
+  defp backoff(11, factor) when factor != 0, do: 1 + factor
+  defp backoff(11, _factor), do: 2.0
+  defp backoff(_movetype, _factor), do: 1.0
 
-      water_transition(server, entity)
-    end
+  defp settled(server, entity, %{normal: {_, _, nz}} = trace, movetype, {_, _, vz}) do
+    if nz > 0.7 and movetype != 11 and (vz < bounce_stop(server, entity) or movetype != 10),
+      do:
+        server
+        |> Edicts.set_flag(entity, :onground)
+        |> Edicts.put(entity, "groundentity", trace.hit || 0)
+        |> Edicts.put(entity, "velocity", {0.0, 0.0, 0.0})
+        |> Edicts.put(entity, "avelocity", {0.0, 0.0, 0.0}),
+      else: server
   end
 
   defp bounce_stop(server, entity) do
@@ -468,7 +465,6 @@ defmodule QuakeServer.Physics do
     bits = World.contents_world(server, Edicts.vector(server, entity, "origin"))
     contents = Contents.water_code(bits)
     type = Edicts.int(server, entity, "watertype")
-    splash = Server.cvar_string(server, "sv_sound_watersplash")
 
     cond do
       type == 0 ->
@@ -479,21 +475,25 @@ defmodule QuakeServer.Physics do
         |> contents_transition_run(entity, type, contents)
         |> set_water(entity, contents, 1)
 
-      contents <= -3 ->
-        server =
-          if type == -1 and splash != "",
-            do: Sounds.start(server, entity, 0, splash, 1.0, 1.0),
-            else: server
-
-        set_water(server, entity, contents, 1)
-
       true ->
-        server =
-          if type != -1 and splash != "",
-            do: Sounds.start(server, entity, 0, splash, 1.0, 1.0),
-            else: server
+        splashed(server, entity, type, contents)
+    end
+  end
 
-        set_water(server, entity, -1, contents)
+  defp splashed(server, entity, type, contents) when contents <= -3 do
+    server = if type == -1, do: splash(server, entity), else: server
+    set_water(server, entity, contents, 1)
+  end
+
+  defp splashed(server, entity, type, contents) do
+    server = if type != -1, do: splash(server, entity), else: server
+    set_water(server, entity, -1, contents)
+  end
+
+  defp splash(server, entity) do
+    case Server.cvar_string(server, "sv_sound_watersplash") do
+      "" -> server
+      sound -> Sounds.start(server, entity, 0, sound, 1.0, 1.0)
     end
   end
 

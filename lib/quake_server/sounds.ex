@@ -53,7 +53,17 @@ defmodule QuakeServer.Sounds do
         server
 
       true ->
-        send_sound(server, entity, channel, name, volume, attenuation, origin, flags, opts)
+        sound = %{
+          entity: entity,
+          channel: channel,
+          name: name,
+          volume: volume,
+          attenuation: attenuation,
+          origin: origin,
+          flags: flags
+        }
+
+        send_sound(server, sound, opts)
     end
   end
 
@@ -79,8 +89,10 @@ defmodule QuakeServer.Sounds do
 
   defp place(_server, _entity, origin, flags), do: {origin, flags}
 
-  defp send_sound(server, entity, channel, name, volume, attenuation, origin, flags, opts) do
-    {server, flags} = precached(server, name, flags)
+  defp send_sound(server, sound, opts) do
+    %{entity: entity, channel: channel, name: name, volume: volume} = sound
+    %{attenuation: attenuation, origin: origin} = sound
+    {server, flags} = precached(server, name, sound.flags)
     reliable? = Bitwise.band(flags, @reliable) != 0
     pitch = Keyword.get(opts, :pitch, 0.0) / 1
     timeofs = Keyword.get(opts, :timeofs, 0.0) / 1

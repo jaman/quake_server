@@ -14,6 +14,7 @@ defmodule QuakeServer.Extensions.Json do
   """
 
   alias QuakeServer.Args
+  alias QuakeServer.Extensions.Strings
 
   @string 0
   @number 1
@@ -63,7 +64,7 @@ defmodule QuakeServer.Extensions.Json do
       @string ->
         Args.return(
           s,
-          QuakeServer.Extensions.Strings.number(QuakeC.string(s.qc, word(s, node, 2)))
+          Strings.number(QuakeC.string(s.qc, word(s, node, 2)))
         )
 
       _ ->
@@ -97,20 +98,19 @@ defmodule QuakeServer.Extensions.Json do
     node = Args.int(s, 0)
     name = Args.str(s, 1)
 
-    found =
-      if type(s, node) in [@object, @array] do
-        Enum.find_value(0..(word(s, node, 3) - 1)//1, 0, fn i ->
-          child = word(s, node, 2) + i * @node
-          if QuakeC.string(s.qc, word(s, child, 1)) == name, do: child
-        end)
-      else
-        0
-      end
-
+    found = if type(s, node) in [@object, @array], do: child_named(s, node, name), else: 0
     Args.return(s, found)
   end
 
   def call(s, "js_run_script", _argc), do: Args.return(s, 0)
+
+  defp child_named(s, node, name) do
+    first = word(s, node, 2)
+    Enum.find_value(0..(word(s, node, 3) - 1)//1, 0, &named(s, first + &1 * @node, name))
+  end
+
+  defp named(s, child, name),
+    do: if(QuakeC.string(s.qc, word(s, child, 1)) == name, do: child)
 
   defp ordered(pairs, outer), do: {{:object, Enum.reverse(pairs)}, outer}
 

@@ -22,8 +22,8 @@ defmodule QuakeServer.World do
 
   import Bitwise
 
-  alias Cauldron3D.{Hull, Vec}
   alias Cauldron3D.Formats.Studio
+  alias Cauldron3D.{Hull, Vec}
   alias QuakeServer.{Angles, Contents, Edicts, Models, Q, Server, Visibility}
   alias QuakeServer.World.{Area, Hitboxes, Hulls, Trace}
 
@@ -507,17 +507,16 @@ defmodule QuakeServer.World do
 
   defp everything?(server, clip, touch) do
     solid = Edicts.int(server, touch, "solid")
-
-    cond do
-      Edicts.free?(server, touch) -> false
-      solid == @solid_not and not findable?(server, touch) -> false
-      solid in [@solid_trigger, @solid_bsp_trigger] and not findable?(server, touch) -> false
-      touch == clip.passer -> false
-      nomonsters?(clip) and solid != @solid_bsp -> false
-      corpse_passes?(server, clip.passer, solid) -> false
-      true -> reachable?(server, clip, touch)
-    end
+    not excluded?(server, clip, touch, solid) and reachable?(server, clip, touch)
   end
+
+  defp excluded?(server, clip, touch, solid) do
+    Edicts.free?(server, touch) or unfound?(server, touch, solid) or touch == clip.passer or
+      (nomonsters?(clip) and solid != @solid_bsp) or corpse_passes?(server, clip.passer, solid)
+  end
+
+  defp unfound?(server, touch, solid),
+    do: solid in [@solid_not, @solid_trigger, @solid_bsp_trigger] and not findable?(server, touch)
 
   defp corpse_passes?(_server, nil, _solid), do: false
 
@@ -609,35 +608,35 @@ defmodule QuakeServer.World do
     solid = Edicts.int(server, entity, "solid")
     model = brush_model(server, entity, solid)
 
-    trace =
-      cond do
-        solid == @solid_corpse ->
-          forced(server, entity, model, move, hull, mask, Contents.bit(:corpse))
-
-        Edicts.int(server, entity, "skin") < 0 ->
-          forced(
-            server,
-            entity,
-            model,
-            move,
-            hull,
-            mask,
-            Contents.forced(Edicts.int(server, entity, "skin"))
-          )
-
-        true ->
-          transformed(server, entity, model, move, hull, mask)
-      end
-
-    trace =
-      if hitmodel? and (trace.fraction != 1 or trace.start_solid) and model == nil,
-        do: on_mesh(server, entity, move, mask, trace),
-        else: trace
-
-    if trace.fraction < 1 or trace.start_solid or trace.all_solid,
-      do: %{trace | hit: entity},
-      else: trace
+    server
+    |> clipped(entity, {model, solid}, move, hull, mask)
+    |> meshed(server, entity, move, mask, hitmodel? and model == nil)
+    |> struck(entity)
   end
+
+  defp clipped(server, entity, {model, solid}, move, hull, mask) do
+    cond do
+      solid == @solid_corpse ->
+        forced(server, entity, model, move, hull, mask, Contents.bit(:corpse))
+
+      (skin = Edicts.int(server, entity, "skin")) < 0 ->
+        forced(server, entity, model, move, hull, mask, Contents.forced(skin))
+
+      true ->
+        transformed(server, entity, model, move, hull, mask)
+    end
+  end
+
+  defp meshed(trace, server, entity, move, mask, true)
+       when trace.fraction != 1 or trace.start_solid,
+       do: on_mesh(server, entity, move, mask, trace)
+
+  defp meshed(trace, _server, _entity, _move, _mask, _mesh?), do: trace
+
+  defp struck(trace, entity) when trace.fraction < 1 or trace.start_solid or trace.all_solid,
+    do: %{trace | hit: entity}
+
+  defp struck(trace, _entity), do: trace
 
   defp brush_model(server, entity, solid)
        when solid in [@solid_bsp, @solid_bsp_trigger, @solid_portal] do

@@ -262,19 +262,27 @@ defmodule QuakeServer.Network do
 
     {server, entities} =
       Enum.reduce(1..(server.count - 1)//1, {server, []}, fn entity, {acc, entities} ->
-        with false <- Edicts.free?(acc, entity),
-             {true, acc} <- customized(acc, entity, viewer) do
-          if shown?(acc, entity, view) and
-               whole(QuakeC.field_slot(acc.qc, entity, send_offset)) != 0,
-             do: {acc, [entity | entities]},
-             else: {acc, entities}
-        else
-          true -> {acc, entities}
-          {false, acc} -> {acc, entities}
-        end
+        considered(acc, entities, entity, view, send_offset)
       end)
 
     {server, Enum.reverse(entities)}
+  end
+
+  defp considered(server, entities, entity, view, send_offset) do
+    with false <- Edicts.free?(server, entity),
+         {true, server} <- customized(server, entity, view.viewer) do
+      {server, sent(server, entities, entity, view, send_offset)}
+    else
+      true -> {server, entities}
+      {false, server} -> {server, entities}
+    end
+  end
+
+  defp sent(server, entities, entity, view, send_offset) do
+    if shown?(server, entity, view) and
+         whole(QuakeC.field_slot(server.qc, entity, send_offset)) != 0,
+       do: [entity | entities],
+       else: entities
   end
 
   defp customized(server, entity, viewer) do

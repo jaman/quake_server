@@ -271,8 +271,8 @@ defmodule QuakeServer.Console.Variables do
 
   defp describe(%Cvar{latched: nil} = cvar) do
     if cvar.default != nil and cvar.string == cvar.default,
-      do: "\"#{cvar.name}\" is \"#{cvar.string}\" (default)\n",
-      else: "\"#{cvar.name}\" is \"#{cvar.string}\"\n" <> default_line(cvar)
+      do: ~s["#{cvar.name}" is "#{cvar.string}" (default)\n],
+      else: ~s["#{cvar.name}" is "#{cvar.string}"\n] <> default_line(cvar)
   end
 
   defp describe(%Cvar{} = cvar) do

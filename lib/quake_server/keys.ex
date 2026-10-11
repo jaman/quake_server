@@ -479,19 +479,20 @@ defmodule QuakeServer.Keys do
     end
   end
 
-  defp strip(text, modifier) do
-    Enum.find_value(@modifier_prefixes, {text, modifier}, fn {name, bit} ->
-      size = byte_size(name)
+  defp strip(text, modifier),
+    do: Enum.find_value(@modifier_prefixes, {text, modifier}, &stripped(text, modifier, &1))
 
-      case text do
-        <<head::binary-size(^size), separator, next, rest::binary>>
-        when separator in [?+, ?\s] ->
-          if String.downcase(head) == name, do: strip(<<next, rest::binary>>, bor(modifier, bit))
+  defp stripped(text, modifier, {name, bit}) do
+    size = byte_size(name)
 
-        _ ->
-          nil
-      end
-    end)
+    case text do
+      <<head::binary-size(^size), separator, next, rest::binary>>
+      when separator in [?+, ?\s] ->
+        if String.downcase(head) == name, do: strip(<<next, rest::binary>>, bor(modifier, bit))
+
+      _ ->
+        nil
+    end
   end
 
   defp named(""), do: -1

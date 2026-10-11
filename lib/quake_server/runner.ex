@@ -99,6 +99,8 @@ defmodule QuakeServer.Runner do
 
   alias Cauldron3D.Vec
   alias QuakeServer.{Animation, Cvars, Edicts, Network, Outbox, Server, Signon}
+  alias QuakeServer.Extensions.Strings
+  alias QuakeServer.Physics.Command
 
   @player 1
   @paused_clock 1.5
@@ -375,7 +377,7 @@ defmodule QuakeServer.Runner do
     do: command |> Map.get(:timelength, 0.0) |> Kernel.*(1000) |> trunc()
 
   defp acknowledged(server, command) do
-    if QuakeServer.Physics.Command.program_moves?(server),
+    if Command.program_moves?(server),
       do: Map.get(command, :sequence, 0),
       else: 0
   end
@@ -401,27 +403,26 @@ defmodule QuakeServer.Runner do
   end
 
   defp frames(%{server: server} = state, left) do
-    seconds = server.clock - server.time
-    shortest = Server.cvar(server, "sv_mintic")
-    longest = Server.cvar(server, "sv_maxtic")
-
-    cond do
-      seconds < 0 ->
-        %{state | server: %{server | time: server.clock}}
-
-      seconds <= 0 or seconds < shortest ->
-        state
-
-      seconds > longest and longest > 0 and left <= 0 ->
-        %{state | server: %{server | time: server.clock}}
-
-      seconds > longest and longest > 0 ->
-        state |> frame(longest) |> frames(left - 1)
-
-      true ->
-        state |> frame(seconds) |> frames(left)
-    end
+    tics = {Server.cvar(server, "sv_mintic"), Server.cvar(server, "sv_maxtic")}
+    frames(state, left, server.clock - server.time, tics)
   end
+
+  defp frames(state, _left, seconds, _tics) when seconds < 0, do: caught_up(state)
+
+  defp frames(state, _left, seconds, {shortest, _longest})
+       when seconds <= 0 or seconds < shortest,
+       do: state
+
+  defp frames(state, left, seconds, {_shortest, longest})
+       when seconds > longest and longest > 0 and left <= 0,
+       do: caught_up(state)
+
+  defp frames(state, left, seconds, {_shortest, longest}) when seconds > longest and longest > 0,
+    do: state |> frame(longest) |> frames(left - 1)
+
+  defp frames(state, left, seconds, _tics), do: state |> frame(seconds) |> frames(left)
+
+  defp caught_up(%{server: server} = state), do: %{state | server: %{server | time: server.clock}}
 
   defp frame(state, seconds) do
     server = Server.frame(state.server, seconds, state.command)
@@ -625,7 +626,7 @@ defmodule QuakeServer.Runner do
   defp put_saved_skill(options, nil), do: options
 
   defp put_saved_skill(options, skill),
-    do: Keyword.put(options, :skill, QuakeServer.Extensions.Strings.number(skill))
+    do: Keyword.put(options, :skill, Strings.number(skill))
 
   defp arrive(state, server) do
     userinfo =

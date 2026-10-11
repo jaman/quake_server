@@ -408,5 +408,5 @@ defmodule QuakeServer.Steps do
 
   defp random(mask), do: :rand.uniform(mask + 1) - 1
 
-  defp anglemod(angle), do: 360.0 / 65536 * band(trunc(angle * (65536 / 360.0)), 65535)
+  defp anglemod(angle), do: 360.0 / 65_536 * band(trunc(angle * (65_536 / 360.0)), 65_535)
 end

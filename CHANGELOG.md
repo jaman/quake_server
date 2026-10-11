@@ -6,7 +6,7 @@
 
 - `Runner.start_link(held: true)` keeps the level unloaded until `Runner.load/1`; a
   client that subscribes before then is sent the serverdata when the level loads.
-- `QuakeServer.Source.replacements/0` (optional): program functions the game runs
+- `c:QuakeServer.Source.replacements/0` (optional): program functions the game runs
   itself, by name. The server's program has them replaced (`QuakeC.Progs.replace/2`) and
   `QuakeServer.Builtins.call/3` runs the game's function when the program calls one.
 - `QuakeServer.World.bounds/2`: the box linking an entity would give it now.

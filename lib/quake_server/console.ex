@@ -49,9 +49,9 @@ defmodule QuakeServer.Console do
   """
 
   alias QuakeC.Exec
-  alias QuakeServer.Console.{Bindings, Configs, Variables}
   alias QuakeServer.{Cheats, Cvars, Events}
-  alias QuakeServer.Extensions.{Settings, Strings}
+  alias QuakeServer.Console.{Bindings, Configs, Variables}
+  alias QuakeServer.Extensions.{Settings, Store, Strings}
   alias QuakeServer.Server
 
   @limit 4096
@@ -294,7 +294,7 @@ defmodule QuakeServer.Console do
         Events.print(server, :notify, "Can't set * keys\n")
 
       true ->
-        case QuakeServer.Extensions.Store.read(server, file) do
+        case Store.read(server, file) do
           nil ->
             Events.print(server, :notify, "Unable to read #{file}\n")
 

@@ -21,8 +21,8 @@ defmodule QuakeServer.Server do
 
   alias QuakeC.Exec
   alias QuakeServer.{Autocvars, Builtins, Cvars, Edicts, EntityTable, Physics, Spawn, World}
-  alias QuakeServer.Extensions.{Settings, Store, Strings}
   alias QuakeServer.Cvars.Engine
+  alias QuakeServer.Extensions.{Routes, Settings, Store, Strings, Web}
   alias QuakeServer.Physics.Command
 
   @type command :: %{
@@ -336,8 +336,8 @@ defmodule QuakeServer.Server do
     qc = QuakeC.put_global(server.qc, "frametime", seconds / 1)
 
     %{server | qc: qc}
-    |> QuakeServer.Extensions.Routes.run()
-    |> QuakeServer.Extensions.Web.run()
+    |> Routes.run()
+    |> Web.run()
     |> QuakeServer.Console.flush()
     |> Physics.frame()
   end
@@ -873,7 +873,7 @@ defmodule QuakeServer.Server do
 
   defp put_startspot(server, startspot) do
     %{server | qc: QuakeC.put_declared(server.qc, "startspot", startspot)}
-    |> QuakeServer.Extensions.Settings.put_info(0, "*startspot", startspot)
+    |> Settings.put_info(0, "*startspot", startspot)
   end
 
   defp bsp_version(%{game: :half_life}), do: "30"

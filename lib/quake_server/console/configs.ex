@@ -29,8 +29,8 @@ defmodule QuakeServer.Console.Configs do
   archived variable changed.
   """
 
-  alias QuakeServer.{Cvars, Events, Server}
   alias QuakeServer.Console.Bindings
+  alias QuakeServer.{Cvars, Events, Server}
   alias QuakeServer.Extensions.Store
 
   @main "fte.cfg"

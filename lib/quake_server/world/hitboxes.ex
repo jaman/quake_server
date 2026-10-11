@@ -21,8 +21,8 @@ defmodule QuakeServer.World.Hitboxes do
 
   import Bitwise
 
-  alias Cauldron3D.{Skeleton, Vec}
   alias Cauldron3D.Formats.Studio
+  alias Cauldron3D.{Skeleton, Vec}
   alias QuakeServer.Contents
   alias QuakeServer.World.Trace
 
@@ -196,12 +196,14 @@ defmodule QuakeServer.World.Hitboxes do
 
     rest
     |> Enum.reduce(start, fn {bones, weight}, acc ->
-      Enum.zip_with(acc, bones, fn {t, q1}, {position, q2} ->
-        sign = if dot4(q2, q1) < 0, do: -weight, else: weight
-        {Vec.madd(t, position, weight), sum4(q1, scale4(q2, sign))}
-      end)
+      Enum.zip_with(acc, bones, &added_bone(&1, &2, weight))
     end)
     |> Enum.map(fn {t, q} -> {t, unit4(q)} end)
+  end
+
+  defp added_bone({t, q1}, {position, q2}, weight) do
+    sign = if dot4(q2, q1) < 0, do: -weight, else: weight
+    {Vec.madd(t, position, weight), sum4(q1, scale4(q2, sign))}
   end
 
   defp frame_locals(studio, index, frame, blend, opts),

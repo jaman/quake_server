@@ -26,6 +26,28 @@ defmodule QuakeServer.Extensions.Encoding do
   alias QuakeServer.Extensions.Memory
 
   @unreserved Enum.concat([?a..?z, ?A..?Z, ?0..?9, ~c".-_~"])
+  @escapes %{
+    ?\n => "\\n",
+    ?\r => "\\r",
+    ?\t => "\\t",
+    ?' => "\\'",
+    ?" => "\\\"",
+    ?\\ => "\\\\",
+    ?$ => "\\$"
+  }
+  @hashes %{
+    "MD4" => :md4,
+    "MD5" => :md5,
+    "SHA1" => :sha,
+    "SHA2-224" => :sha224,
+    "SHA224" => :sha224,
+    "SHA2-256" => :sha256,
+    "SHA256" => :sha256,
+    "SHA2-384" => :sha384,
+    "SHA384" => :sha384,
+    "SHA2-512" => :sha512,
+    "SHA512" => :sha512
+  }
 
   @doc "Run recoding builtin `builtin` (a number or a name)."
   @spec call(map(), integer() | String.t(), non_neg_integer()) :: map()
@@ -126,36 +148,22 @@ defmodule QuakeServer.Extensions.Encoding do
   defp crc_step(crc) when band(crc, 0x8000) != 0, do: band(bxor(crc <<< 1, 0x1021), 0xFFFF)
   defp crc_step(crc), do: band(crc <<< 1, 0xFFFF)
 
-  defp escape(text) do
-    for <<byte <- text>>, into: "" do
-      case byte do
-        ?\n -> "\\n"
-        ?\r -> "\\r"
-        ?\t -> "\\t"
-        ?' -> "\\'"
-        ?" -> "\\\""
-        ?\\ -> "\\\\"
-        ?$ -> "\\$"
-        other -> <<other>>
-      end
+  defp escape(text), do: for(<<byte <- text>>, into: "", do: Map.get(@escapes, byte, <<byte>>))
+
+  defp digest(s, kind, data) do
+    case hash(kind, data) do
+      nil -> Args.return(s, 0)
+      hash -> Args.return(s, Base.encode16(hash, case: :lower))
     end
   end
 
-  defp digest(s, kind, data) do
-    hash =
-      case kind do
-        "MD4" -> :crypto.hash(:md4, data)
-        "MD5" -> :crypto.hash(:md5, data)
-        "SHA1" -> :crypto.hash(:sha, data)
-        name when name in ["SHA2-224", "SHA224"] -> :crypto.hash(:sha224, data)
-        name when name in ["SHA2-256", "SHA256"] -> :crypto.hash(:sha256, data)
-        name when name in ["SHA2-384", "SHA384"] -> :crypto.hash(:sha384, data)
-        name when name in ["SHA2-512", "SHA512"] -> :crypto.hash(:sha512, data)
-        "CRC16" -> <<crc16(data)::little-16>>
-        _ -> nil
-      end
+  defp hash("CRC16", data), do: <<crc16(data)::little-16>>
 
-    if hash, do: Args.return(s, Base.encode16(hash, case: :lower)), else: Args.return(s, 0)
+  defp hash(kind, data) do
+    case Map.fetch(@hashes, kind) do
+      {:ok, algorithm} -> :crypto.hash(algorithm, data)
+      :error -> nil
+    end
   end
 
   defp convert(byte, _i, _case, _letters, digits) when byte in ?0..?9,

@@ -275,9 +275,8 @@ defmodule QuakeServer.Console.Bindings do
   defp bind_key(server, {keynum, modifier}, key, rest, line, from, {level?, bindmap}) do
     {level, rest} = if level?, do: chosen_level(rest, from), else: {level(from), rest}
 
-    with {:ok, modifier} <- in_map(modifier, bindmap) do
-      put(server, keynum, modifier, key, rest, line, level)
-    else
+    case in_map(modifier, bindmap) do
+      {:ok, modifier} -> put(server, keynum, modifier, key, rest, line, level)
       {:error, text} -> warn(server, text)
     end
   end

@@ -384,7 +384,7 @@ defmodule QuakeServer.Extensions.EntityText do
     if whole?(value), do: Integer.to_string(trunc(value)), else: format_f(value)
   end
 
-  defp whole?(value), do: abs(value) < 2.147483648e9 and value == trunc(value)
+  defp whole?(value), do: abs(value) < 2.147_483_648e9 and value == trunc(value)
 
   defp format_f(value), do: :erlang.float_to_binary(value / 1, decimals: 6)
 
