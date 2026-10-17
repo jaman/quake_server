@@ -31,6 +31,8 @@ defmodule QuakeServer.Console do
     * `setpos [x y z [pitch yaw roll]]` and `noclip` (`QuakeServer.Cheats`)
     * `echo text`, `sky name` (kept in `ext.sky`), `wait` (the rest waits for the next
       `flush/1`), `map name`, `changelevel name [startspot]`
+    * `restart`, `disconnect` and `killserver`, the host's own: each is passed to the
+      host as a `{:command, line}` event (`QuakeServer.Server.drain/1`)
     * `watchpoint`, `watchpoint_ssqc`, `watchpoint_csqc` and `watchpoint_menuqc` with a
       term (a global, or `entity.field` with the entity a number or an entity global):
       the term is kept in `ext.watchpoint` and answered `Watchpoint set`, or `Watchpoint
@@ -58,11 +60,13 @@ defmodule QuakeServer.Console do
   @variable_commands ~w(set seta set_tp setfl)
   @defaults_commands ~w(cvar_lockdefaults cvar_purgedefaults cvar_resettodefaults_all cvar_resettodefaults_saveonly cvar_resettodefaults_nosaveonly)
   @watchpoints ~w(watchpoint watchpoint_ssqc watchpoint_csqc watchpoint_menuqc)
+  @host_commands ~w(restart disconnect killserver)
   @binding_commands Bindings.commands()
   @commands @variable_commands ++
               @defaults_commands ++
               @watchpoints ++
               @binding_commands ++
+              @host_commands ++
               ~w(toggle inc cvarreset vid_reload vid_restart exec cfg_save cfg_save_ifmodified alias serverinfo localinfo setinfo setinfoblob echo sky map changelevel wait setpos noclip)
 
   @doc "Run the commands `localcmd` queued since the last flush."
@@ -153,6 +157,9 @@ defmodule QuakeServer.Console do
 
   defp own(name, words, _tokens, _line, server, _context) when name in @watchpoints,
     do: {watchpoint(server, Enum.at(words, 1)), []}
+
+  defp own(name, _words, _tokens, line, server, _context) when name in @host_commands,
+    do: {Server.emit(server, {:command, line}), []}
 
   defp own(name, _words, tokens, line, server, context) when name in @binding_commands,
     do: {Bindings.command(server, name, tokens, line, context.from), []}

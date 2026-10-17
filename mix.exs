@@ -1,7 +1,7 @@
 defmodule QuakeServer.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.1.1"
   @source_url "https://github.com/jaman/quake_server"
 
   def project do
@@ -41,9 +41,9 @@ defmodule QuakeServer.MixProject do
 
   defp deps do
     [
-      family(:quake_c, "~> 0.2.2", "../cauldron/quake_c", []),
-      family(:cauldron_3d, "~> 0.2.2", "../cauldron/cauldron_3d", []),
-      family(:cauldron_3d_formats, "~> 0.2.2", "../cauldron/cauldron_3d_formats", []),
+      family(:quake_c, "~> 0.3.0", "../cauldron/quake_c", []),
+      family(:cauldron_3d, "~> 0.3.0", "../cauldron/cauldron_3d", []),
+      family(:cauldron_3d_formats, "~> 0.3.0", "../cauldron/cauldron_3d_formats", []),
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false}
     ]

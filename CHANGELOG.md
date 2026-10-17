@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## [0.1.1]
+
+### Added
+
+- The console's `restart`, `disconnect` and `killserver` are passed to the host as
+  `{:command, line}` events (`QuakeServer.Server.drain/1`).
+
+## [0.1.0]
 
 ### Added
 
@@ -315,3 +322,4 @@
   several arguments, return vectors whole, and `&name` gives a global's address.
 - `World.stuck?` counts `allsolid` and tests non-solid and trigger entities against brush
   models only.
+
